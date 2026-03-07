@@ -11,6 +11,17 @@
 --              Ordenados de forma DESCENDENTE por cantidad
 --              de establecimientos.
 -- ============================================================
+-- Ajuste 1:
+-- Autor  : Juan David Escobar
+-- Fecha  : 2026-03-07
+-- Descripción: Se cambian los alias o nombre de los campos para
+--              que no tengan espacios ya que en la capa de WEB API
+--              se presentoproblemas con EF.
+-- Detalle del error:  error 0xffffffff — eso significa que crasheó 
+--             completamente. El atributo [Column] de 
+--             System.ComponentModel.DataAnnotations no funciona con 
+--             FromSql de EF Core para mapear nombres con espacios.
+-- ============================================================
 
 USE AgremiacionComercio;
 GO
@@ -52,24 +63,22 @@ BEGIN
     SET NOCOUNT ON;
 
     SELECT
-        c.NombreRazonSocial                         AS [Nombre / Razón Social],
-        m.Nombre                                    AS [Municipio],
-        ISNULL(c.Telefono,        'N/A')            AS [Teléfono],
-        ISNULL(c.CorreoElectronico, 'N/A')          AS [Correo Electrónico],
-        FORMAT(c.FechaRegistro, 'yyyy-MM-dd')       AS [Fecha de Registro],
-        est.Nombre                                  AS [Estado],
-        ISNULL(r.CantidadEstablecimientos,  0)      AS [Cantidad de Establecimientos],
-        ISNULL(r.TotalIngresos,             0.00)   AS [Total Ingresos],
-        ISNULL(r.CantidadEmpleados,         0)      AS [Cantidad de Empleados]
-    FROM       dbo.Comerciante                          c
-    INNER JOIN dbo.Estado                               est ON est.EstadoId    = c.EstadoId
-    INNER JOIN dbo.Municipio                            m   ON m.MunicipioId   = c.MunicipioId
-    -- LEFT JOIN para incluir comerciantes activos sin establecimientos
-    LEFT  JOIN dbo.fn_ObtenerResumenEstablecimientos()  r   ON r.ComercianteId = c.ComercianteId
-    WHERE
-        est.Nombre = 'Activo'
-    ORDER BY
-        ISNULL(r.CantidadEstablecimientos, 0) DESC;
+        c.NombreRazonSocial,
+        m.Nombre              AS Municipio,
+        c.Telefono,
+        c.CorreoElectronico,
+        c.FechaRegistro,
+        e.Nombre              AS Estado,
+        r.CantidadEstablecimientos,
+        r.TotalIngresos,
+        r.CantidadEmpleados
+    FROM Comerciante c
+    INNER JOIN Municipio m  ON c.MunicipioId = m.MunicipioId
+    INNER JOIN Estado e     ON c.EstadoId    = e.EstadoId
+    INNER JOIN dbo.fn_ObtenerResumenEstablecimientos() r 
+                            ON c.ComercianteId = r.ComercianteId
+    WHERE e.Nombre = 'Activo'
+    ORDER BY r.CantidadEstablecimientos DESC;
 END;
 GO
 
