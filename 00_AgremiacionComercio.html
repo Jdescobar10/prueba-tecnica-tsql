@@ -1117,20 +1117,20 @@
         <!-- col 1 -->
         <div style="padding:12px 16px; border-right:1px solid rgba(255,255,255,.05); font-family:'JetBrains Mono',monospace; font-size:11px; line-height:2; color:#94a3b8;">
           <div style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Datos del Comerciante</div>
-          <div>📌 <code style="color:#e2e8f0;">Nombre / Razón Social</code></div>
+          <div>📌 <code style="color:#e2e8f0;">NombreRazonSocial</code></div>
           <div>📌 <code style="color:#e2e8f0;">Municipio</code></div>
-          <div>📌 <code style="color:#e2e8f0;">Teléfono</code></div>
-          <div>📌 <code style="color:#e2e8f0;">Correo Electrónico</code></div>
-          <div>📌 <code style="color:#e2e8f0;">Fecha de Registro</code></div>
+          <div>📌 <code style="color:#e2e8f0;">Telefono</code></div>
+          <div>📌 <code style="color:#e2e8f0;">CorreoElectronico</code></div>
+          <div>📌 <code style="color:#e2e8f0;">FechaRegistro</code></div>
           <div>📌 <code style="color:#e2e8f0;">Estado</code></div>
         </div>
 
         <!-- col 2 -->
         <div style="padding:12px 16px; border-right:1px solid rgba(255,255,255,.05); font-family:'JetBrains Mono',monospace; font-size:11px; line-height:2; color:#94a3b8;">
           <div style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Calculados por la Función</div>
-          <div>🔢 <code style="color:#10b981;">Cantidad de Establecimientos</code></div>
-          <div>💰 <code style="color:#10b981;">Total Ingresos</code></div>
-          <div>👥 <code style="color:#10b981;">Cantidad de Empleados</code></div>
+          <div>🔢 <code style="color:#10b981;">CantidadEstablecimientos</code></div>
+          <div>💰 <code style="color:#10b981;">TotalIngresos</code></div>
+          <div>👥 <code style="color:#10b981;">CantidadEmpleados</code></div>
         </div>
 
         <!-- col 3 -->
@@ -1138,8 +1138,8 @@
           <div style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Detalles Técnicos</div>
           <div style="margin-bottom:6px;"><span style="color:#e2e8f0;">Filtro:</span> Solo comerciantes <code style="color:#10b981;">Activos</code></div>
           <div style="margin-bottom:6px;"><span style="color:#e2e8f0;">Orden:</span> <code style="color:#fbbf24;">DESC</code> por cantidad de establecimientos</div>
-          <div style="margin-bottom:6px;"><span style="color:#e2e8f0;">JOIN:</span> <code style="color:#a78bfa;">LEFT JOIN</code> con la función para incluir comerciantes sin establecimientos</div>
-          <div><span style="color:#e2e8f0;">Nulos:</span> <code style="color:#a78bfa;">ISNULL</code> muestra <code>0</code> o <code>'N/A'</code> en lugar de vacíos</div>
+          <div style="margin-bottom:6px;"><span style="color:#e2e8f0;">JOIN:</span> <code style="color:#a78bfa;">INNER JOIN</code> con la función auxiliar</div>
+          <div style="margin-bottom:6px;"><span style="color:#e2e8f0;">Alias:</span> Sin espacios para compatibilidad con <code style="color:#a78bfa;">EF Core FromSql()</code></div>
         </div>
 
       </div>

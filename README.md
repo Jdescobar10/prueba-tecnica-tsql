@@ -1,187 +1,69 @@
-<div align="center">
+# FULLSTACK · T-SQL
+## Prueba Técnica — Agremiación Nacional de Comercio
 
-# 🏛️ FULLSTACK T-SQL
-## AgremiacionComercio
-
-![SQL Server](https://img.shields.io/badge/SQL%20Server-T--SQL-CC2927?style=for-the-badge&logo=microsoftsqlserver&logoColor=white)
-![Status](https://img.shields.io/badge/Estado-Producción-10b981?style=for-the-badge)
-![Version](https://img.shields.io/badge/Versión-1.0.0-00d4ff?style=for-the-badge)
-![Normalization](https://img.shields.io/badge/Normalización-3FN-7c3aed?style=for-the-badge)
-
-> Base de datos relacional para la gestión de comerciantes y sus establecimientos, construida sobre **SQL Server** con **T-SQL**.  
-> Incluye modelo ER completo, triggers de auditoría, datos semilla y stored procedure de reporte.
-
-**Autor:** Juan David Escobar &nbsp;·&nbsp; **Fecha:** 2026-03-06
-
-</div>
+> **Base de datos:** `AgremiacionComercio` · **Motor:** SQL Server · **Lenguaje:** T-SQL  
+> **Autor:** Juan David Escobar · 2026
 
 ---
 
-## 📋 Tabla de Contenido
+## 📋 Descripción
 
-- [Modelo Entidad-Relación](#-modelo-entidad-relación)
-- [Estructura de Tablas](#-estructura-de-tablas)
-- [Normalizaciones Aplicadas](#-normalizaciones-aplicadas-3fn)
-- [Orden de Ejecución de Scripts](#-orden-de-ejecución-de-scripts)
-- [Triggers de Auditoría](#-triggers-de-auditoría)
-- [Stored Procedure — Reporte de Comerciantes](#-stored-procedure--reporte-de-comerciantes)
-- [Nota de Seguridad](#️-nota-de-seguridad)
+Sistema de base de datos diseñado para centralizar y gestionar la información de comerciantes y sus establecimientos, apoyando los procesos operativos esenciales de la agremiación nacional de comercio.
 
 ---
 
-## 🗺️ Modelo Entidad-Relación
+## 📁 Orden de Ejecución de Scripts
 
-El diagrama completo puede visualizarse abriendo el archivo **`00_AgremiacionComercio.html`** en cualquier navegador moderno. A continuación se describe la estructura de relaciones:
+> ⚠️ Los scripts **deben ejecutarse en el orden indicado**. Cada uno depende del anterior.
 
-```
-  ┌─────────┐        ┌──────────────┐
-  │   Rol   │ 1 ── N │   Usuario    │
-  └─────────┘        └──────────────┘
+| # | Archivo | Tipo | Descripción |
+|---|---------|------|-------------|
+| 01 | `01_Crear_DatabaseTablesIndex.sql` | DDL | Crea la base de datos, todas las tablas e índices |
+| 02 | `02_Triggers_Auditoria.sql` | TRIGGER | Crea los triggers de auditoría automática |
+| 03 | `03_Datos_Semilla.sql` | DML | Inserta los datos iniciales del sistema |
+| 04 | `04_SP_ReporteComerciantes.sql` | SP · FUNCTION | Crea la función auxiliar y el stored procedure del reporte |
 
-  ┌─────────┐
-  │  Estado │ 1 ─────────────┐
-  └─────────┘                │
-                             ▼
-  ┌──────────┐        ┌──────────────┐        ┌──────────────────┐
-  │ Municipio│ 1 ── N │  Comerciante │ 1 ── N │ Establecimiento  │
-  └──────────┘        └──────────────┘        └──────────────────┘
-```
+---
+
+## 🗄 Modelo de Datos
+
+### Tablas
+
+| Tabla | Descripción |
+|-------|-------------|
+| `dbo.Rol` | Catálogo de roles: `Administrador` y `Auxiliar de Registro` |
+| `dbo.Usuario` | Usuarios del sistema con correo, contraseña y rol |
+| `dbo.Municipio` | Catálogo de municipios |
+| `dbo.Estado` | Catálogo de estados: `Activo` e `Inactivo` |
+| `dbo.Comerciante` | Comerciantes registrados con campos de auditoría |
+| `dbo.Establecimiento` | Establecimientos asociados a cada comerciante con campos de auditoría |
 
 ### Relaciones
 
-| Tabla Origen | Cardinalidad | Tabla Destino     | FK en destino   |
-|:-------------|:------------:|:------------------|:----------------|
-| `Rol`        | 1 : N        | `Usuario`         | `RolId`         |
-| `Estado`     | 1 : N        | `Comerciante`     | `EstadoId`      |
-| `Municipio`  | 1 : N        | `Comerciante`     | `MunicipioId`   |
-| `Comerciante`| 1 : N        | `Establecimiento` | `ComercianteId` |
+```
+Rol           ──(1:N)──► Usuario
+Estado        ──(1:N)──► Comerciante
+Municipio     ──(1:N)──► Comerciante
+Comerciante   ──(1:N)──► Establecimiento
+```
 
 ---
 
-## 🗄️ Estructura de Tablas
+## 🔷 Normalizaciones Aplicadas — 3FN
 
-### 🟣 `dbo.Rol`
-| Campo | Tipo | Restricción |
-|:------|:-----|:------------|
-| `RolId` | `INT` | 🔑 PK · IDENTITY |
-| `Nombre` | `NVARCHAR(50)` | NOT NULL |
-
----
-
-### 🟣 `dbo.Usuario`
-| Campo | Tipo | Restricción |
-|:------|:-----|:------------|
-| `UsuarioId` | `INT` | 🔑 PK · IDENTITY |
-| `Nombre` | `NVARCHAR(150)` | NOT NULL |
-| `CorreoElectronico` | `NVARCHAR(255)` | NOT NULL |
-| `Contrasena` | `NVARCHAR(255)` | NOT NULL *(hash)* |
-| `RolId` | `INT` | 🔗 FK → `Rol` |
-
----
-
-### 🟢 `dbo.Estado`
-| Campo | Tipo | Restricción |
-|:------|:-----|:------------|
-| `EstadoId` | `INT` | 🔑 PK · IDENTITY |
-| `Nombre` | `NVARCHAR(50)` | NOT NULL |
-
----
-
-### 🟡 `dbo.Municipio`
-| Campo | Tipo | Restricción |
-|:------|:-----|:------------|
-| `MunicipioId` | `INT` | 🔑 PK · IDENTITY |
-| `Nombre` | `NVARCHAR(150)` | NOT NULL |
-
----
-
-### 🔵 `dbo.Comerciante` *(tabla central)*
-| Campo | Tipo | Restricción |
-|:------|:-----|:------------|
-| `ComercianteId` | `INT` | 🔑 PK · IDENTITY |
-| `NombreRazonSocial` | `NVARCHAR(255)` | NOT NULL |
-| `MunicipioId` | `INT` | 🔗 FK → `Municipio` |
-| `EstadoId` | `INT` | 🔗 FK → `Estado` |
-| `Telefono` | `NVARCHAR(20)` | NULL |
-| `CorreoElectronico` | `NVARCHAR(255)` | NULL |
-| `FechaRegistro` | `DATE` | NOT NULL |
-| `FechaActualizacion` | `DATETIME2` | NULL *(trigger)* |
-| `UsuarioAuditoria` | `NVARCHAR(255)` | NULL *(trigger)* |
-
----
-
-### 🔴 `dbo.Establecimiento`
-| Campo | Tipo | Restricción |
-|:------|:-----|:------------|
-| `EstablecimientoId` | `INT` | 🔑 PK · IDENTITY |
-| `Nombre` | `NVARCHAR(255)` | NOT NULL |
-| `Ingresos` | `DECIMAL(18,2)` | NOT NULL |
-| `NumeroEmpleados` | `INT` | NOT NULL |
-| `ComercianteId` | `INT` | 🔗 FK → `Comerciante` |
-| `FechaActualizacion` | `DATETIME2` | NULL *(trigger)* |
-| `UsuarioAuditoria` | `NVARCHAR(255)` | NULL *(trigger)* |
-
----
-
-## 🔷 Normalizaciones Aplicadas (3FN)
+Se aplicó **Tercera Forma Normal (3FN)** en tres entidades para eliminar dependencias transitivas y evitar valores de dominio controlado como texto libre.
 
 ### 1 · Tabla `Rol`
-**Sin normalizar:** `Rol NVARCHAR(50)` directo en `Usuario` → `'Administrador'` | `'Auxiliar de Registro'`  
-**Con normalización:** Catálogo independiente con FK.  
-**¿Por qué?** Evita texto repetido en cada fila de `Usuario`. Si el nombre del rol cambia, se actualiza **un solo registro** en el catálogo. Permite agregar nuevos roles sin alterar el esquema.
+- **Sin normalizar:** `Rol NVARCHAR(50)` en la tabla `Usuario`
+- **¿Por qué?** Evita texto repetido en cada fila. Si el nombre del rol cambia, se actualiza un solo registro en el catálogo. Permite agregar nuevos roles sin alterar el esquema.
 
 ### 2 · Tabla `Municipio`
-**Sin normalizar:** `Municipio NVARCHAR(150)` directo en `Comerciante` → `'Bogotá'` | `'bogota'` | `'Bogotá D.C.'`  
-**Con normalización:** Catálogo independiente con FK.  
-**¿Por qué?** Texto libre genera **inconsistencias graves**: variantes del mismo nombre se tratan como municipios distintos. El catálogo garantiza integridad referencial y confiabilidad en filtros y reportes.
+- **Sin normalizar:** `Municipio NVARCHAR(150)` en la tabla `Comerciante`
+- **¿Por qué?** Texto libre genera inconsistencias graves: `'Bogotá'`, `'bogota'`, `'Bogotá D.C.'` serían tres municipios distintos. El catálogo garantiza integridad referencial y confiabilidad en filtros y reportes.
 
 ### 3 · Tabla `Estado`
-**Sin normalizar:** `Estado NVARCHAR(20)` directo en `Comerciante` → `'Activo'` | `'Inactivo'`  
-**Con normalización:** Catálogo independiente con FK.  
-**¿Por qué?** Centraliza los estados válidos del sistema. Facilita agregar nuevos estados y mantiene consistencia en las consultas y filtros del reporte.
-
----
-
-## 🗂️ Orden de Ejecución de Scripts
-
-> ⚠️ Los scripts **deben ejecutarse en este orden exacto**. Cada uno depende del anterior.
-
-### `01` · `01_Crear_DatabaseTablesIndex.sql` — DDL
-
-Crea la **base de datos** `AgremiacionComercio` y todas las **tablas** del modelo: `Rol`, `Usuario`, `Municipio`, `Estado`, `Comerciante` y `Establecimiento`. También define los **índices** para optimizar las consultas más frecuentes.
-
-> 🔴 **Debe ejecutarse primero** — los demás scripts dependen de esta estructura.
-
----
-
-### `02` · `02_Triggers_Auditoria.sql` — TRIGGER
-
-Crea los **triggers de auditoría** `trg_Comerciante_Auditoria` y `trg_Establecimiento_Auditoria`. Deben crearse **después de las tablas** (Script 01) ya que los triggers se asocian directamente a ellas.
-
-> Sin este script los campos `FechaActualizacion` y `UsuarioAuditoria` no se poblarán automáticamente.
-
----
-
-### `03` · `03_Datos_Semilla.sql` — DML
-
-Inserta los **datos iniciales** necesarios para el funcionamiento del sistema:
-- Catálogos: `Rol`, `Estado`, `Municipio`
-- **2 usuarios** (uno por cada rol)
-- **5 comerciantes**
-- **10 establecimientos**
-
-> Debe ejecutarse después de los triggers para que los campos de auditoría se pueblen automáticamente al insertar.
-
----
-
-### `04` · `04_SP_ReporteComerciantes.sql` — SP · FUNCTION
-
-Crea la función auxiliar `fn_ObtenerResumenEstablecimientos` y el procedimiento almacenado `sp_ReporteComerciantes`. Debe ejecutarse de **último** ya que depende de que las tablas y los datos semilla existan previamente.
-
-```sql
--- Para ejecutar el reporte:
-EXEC dbo.sp_ReporteComerciantes;
-```
+- **Sin normalizar:** `Estado NVARCHAR(20)` en la tabla `Comerciante`
+- **¿Por qué?** Si el negocio requiere estados nuevos como `'Suspendido'`, solo se inserta un registro. Con texto plano habría que modificar el esquema y agregar un `CHECK constraint`.
 
 ---
 
@@ -190,93 +72,75 @@ EXEC dbo.sp_ReporteComerciantes;
 ### `trg_Comerciante_Auditoria`
 - **Tabla:** `dbo.Comerciante`
 - **Evento:** `AFTER INSERT, UPDATE`
-- **¿Qué hace?** Cada vez que se **inserta o modifica** un comerciante, actualiza automáticamente `FechaActualizacion` con la fecha y hora exacta del momento, y `UsuarioAuditoria` con el usuario de la sesión SQL Server activa (`SYSTEM_USER`).
+- **¿Qué hace?** Actualiza automáticamente `FechaActualizacion` con `GETDATE()` y `UsuarioAuditoria` con `SYSTEM_USER` en cada inserción o modificación.
 
 ### `trg_Establecimiento_Auditoria`
 - **Tabla:** `dbo.Establecimiento`
 - **Evento:** `AFTER INSERT, UPDATE`
-- **¿Qué hace?** Cada vez que se **inserta o modifica** un establecimiento, actualiza automáticamente `FechaActualizacion` con la fecha y hora exacta del momento, y `UsuarioAuditoria` con el usuario de la sesión SQL Server activa (`SYSTEM_USER`).
+- **¿Qué hace?** Igual que el anterior, pero sobre la tabla `Establecimiento`.
 
-### Campos de Auditoría — Detalle
+### Campos de auditoría
 
 | Campo | Tipo | Descripción |
-|:------|:-----|:------------|
-| `FechaActualizacion` | `DATETIME2(0)` NULL | Fecha y hora exacta del último cambio. Poblado automáticamente por el trigger usando `GETDATE()`. Nunca se debe ingresar manualmente. |
-| `UsuarioAuditoria` | `NVARCHAR(255)` NULL | Nombre del usuario de SQL Server que ejecutó la operación. Poblado con `SYSTEM_USER`. En producción puede reemplazarse por el usuario de la aplicación enviado desde el backend. |
+|-------|------|-------------|
+| `FechaActualizacion` | `DATETIME2(0)` | Fecha y hora exacta de la última operación. Poblado por `GETDATE()` |
+| `UsuarioAuditoria` | `NVARCHAR(255)` | Usuario de la sesión SQL Server activa. Poblado por `SYSTEM_USER` |
 
-📌 **Tablas con campos de auditoría:** `dbo.Comerciante` · `dbo.Establecimiento`
+> Ambos campos están presentes en `dbo.Comerciante` y `dbo.Establecimiento`.
 
 ---
 
-## 📊 Stored Procedure — Reporte de Comerciantes
+## 📊 Reporte de Comerciantes
 
-### Arquitectura del reporte
+### Función auxiliar: `fn_ObtenerResumenEstablecimientos`
+- **Tipo:** `INLINE TABLE-VALUED FUNCTION`
+- **Retorna:** `(ComercianteId, CantidadEstablecimientos, TotalIngresos, CantidadEmpleados)`
+- **¿Por qué se creó separada?** Encapsula los cálculos `COUNT` y `SUM` agrupados por comerciante. Al estar en una función independiente es **reutilizable** en otras consultas y mantiene el SP principal limpio y legible.
 
+### Stored Procedure: `sp_ReporteComerciantes`
+
+```sql
+EXEC dbo.sp_ReporteComerciantes;
 ```
-sp_ReporteComerciantes
-        │
-        └──► fn_ObtenerResumenEstablecimientos()
-                    (INLINE TABLE-VALUED FUNCTION)
-                    Retorna: ComercianteId, CantidadEstablecimientos,
-                             TotalIngresos, CantidadEmpleados
-```
 
-**¿Por qué se creó la función auxiliar?**  
-Encapsula los cálculos de `COUNT`, `SUM` de ingresos y `SUM` de empleados agrupados por comerciante. Separarlo en una función independiente la hace **reutilizable** en otras consultas o procedimientos futuros, y mantiene el SP principal **limpio y legible**.
+**Columnas retornadas:**
 
-### Columnas retornadas
+| Campo | Origen |
+|-------|--------|
+| `NombreRazonSocial` | Comerciante |
+| `Municipio` | Catálogo Municipio |
+| `Telefono` | Comerciante |
+| `CorreoElectronico` | Comerciante |
+| `FechaRegistro` | Comerciante |
+| `Estado` | Catálogo Estado |
+| `CantidadEstablecimientos` | Calculado por la función |
+| `TotalIngresos` | Calculado por la función |
+| `CantidadEmpleados` | Calculado por la función |
 
-**Datos del Comerciante**
-- 📌 `Nombre / Razón Social`
-- 📌 `Municipio`
-- 📌 `Teléfono`
-- 📌 `Correo Electrónico`
-- 📌 `Fecha de Registro`
-- 📌 `Estado`
-
-**Calculados por la Función**
-- 🔢 `Cantidad de Establecimientos`
-- 💰 `Total Ingresos`
-- 👥 `Cantidad de Empleados`
-
-### Detalles Técnicos
-
-| Aspecto | Detalle |
-|:--------|:--------|
-| **Filtro** | Solo comerciantes `Activos` |
-| **Orden** | `DESC` por cantidad de establecimientos |
-| **JOIN** | `LEFT JOIN` con la función para incluir comerciantes sin establecimientos |
-| **Nulos** | `ISNULL` muestra `0` o `'N/A'` en lugar de vacíos |
+**Detalles técnicos:**
+- **Filtro:** Solo comerciantes `Activos`
+- **Orden:** `DESC` por `CantidadEstablecimientos`
+- **JOIN:** `INNER JOIN` con la función auxiliar
+- **Alias:** Sin espacios para compatibilidad con `EF Core FromSql()`
 
 ---
 
-## ⚠️ Nota de Seguridad
+## 🌱 Datos Semilla
 
-> **Campo `Usuario.Contrasena`**
-
-El campo `Contrasena NVARCHAR(255)` está definido para almacenar el **hash** de la contraseña, **no el texto plano**. El hashing debe realizarse en la **capa de aplicación** (backend) antes de persistir el dato, usando algoritmos como `bcrypt`, `Argon2` o `PBKDF2`. SQL Server únicamente almacena el resultado.
-
-> ❌ **Nunca se debe guardar ni comparar contraseñas en texto plano.**
-
----
-
-## 📖 Leyenda
-
-| Símbolo | Significado |
-|:--------|:------------|
-| 🔑 | PK · Llave Primaria (IDENTITY) |
-| 🔗 | FK · Llave Foránea |
-| `NULL` | Campo Opcional |
-| *italics* | Campo de Auditoría (gestionado por Trigger) |
+| Entidad | Cantidad |
+|---------|----------|
+| Usuarios | 2 (uno por cada rol) |
+| Comerciantes | 5 (4 activos, 1 inactivo) |
+| Establecimientos | 10 (distribución aleatoria por comerciante) |
 
 ---
 
-<div align="center">
+## 🔐 Nota de Seguridad
 
-Creado por **Juan David Escobar** · 2026
+El campo `Usuario.Contrasena NVARCHAR(255)` está definido para almacenar el **hash** de la contraseña, **no el texto plano**. El hashing debe realizarse en la **capa de aplicación** (backend) antes de persistir el dato, usando algoritmos como `bcrypt`, `Argon2` o `PBKDF2`. SQL Server únicamente almacena el resultado.
 
-![SQL Server](https://img.shields.io/badge/Microsoft-SQL%20Server-CC2927?style=flat-square&logo=microsoftsqlserver&logoColor=white)
-![T-SQL](https://img.shields.io/badge/Language-T--SQL-00d4ff?style=flat-square)
-![3NF](https://img.shields.io/badge/Normalización-3FN-7c3aed?style=flat-square)
+---
 
-</div>
+## 📄 Documentación
+
+El archivo `00_AgremiacionComercio.html` contiene la documentación visual completa del proyecto incluyendo el diagrama Entidad-Relación, orden de scripts, normalizaciones, triggers y reporte de comerciantes.
