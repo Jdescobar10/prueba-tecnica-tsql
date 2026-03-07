@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modelo ER – AgremiacionComercio</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0b0f1a;
+    --panel:    #111827;
+    --border:   #1e2d45;
+    --accent1:  #00d4ff;
+    --accent2:  #7c3aed;
+    --accent3:  #10b981;
+    --accent4:  #f59e0b;
+    --accent5:  #ef4444;
+    --pk:       #fbbf24;
+    --fk:       #60a5fa;
+    --text:     #e2e8f0;
+    --muted:    #64748b;
+    --line:     rgba(0,212,255,0.35);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative; z-index: 10;
+    padding: 32px 48px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 20px;
+    background: linear-gradient(135deg, #0b0f1a 0%, #111827 100%);
+  }
+  .db-icon {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, var(--accent1), var(--accent2));
+    border-radius: 12px;
+    display: grid; place-items: center;
+    font-size: 22px;
+    box-shadow: 0 0 24px rgba(0,212,255,.4);
+    flex-shrink: 0;
+  }
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.5px;
+  }
+  header p {
+    font-size: 11px; color: var(--muted);
+    margin-top: 2px; letter-spacing: 2px; text-transform: uppercase;
+  }
+  .badge {
+    margin-left: auto;
+    padding: 6px 14px;
+    border: 1px solid var(--accent1);
+    border-radius: 20px;
+    font-size: 10px; color: var(--accent1);
+    letter-spacing: 2px; text-transform: uppercase;
+    background: rgba(0,212,255,.06);
+  }
+
+  /* ── CANVAS WRAPPER ── */
+  .canvas-wrap {
+    position: relative; z-index: 5;
+    padding: 40px 32px;
+    overflow: auto;
+  }
+
+  /* ── SVG LINES ── */
+  .relations-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* ── DIAGRAM GRID ── */
+  .diagram {
+    position: relative;
+    display: grid;
+    grid-template-columns: 220px 220px 220px 220px;
+    grid-template-rows: auto auto auto;
+    gap: 24px 56px;
+    justify-content: center;
+    min-height: 720px;
+    z-index: 2;
+  }
+
+  /* ── TABLE CARD ── */
+  .table-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 32px rgba(0,0,0,.5);
+    transition: transform .2s, box-shadow .2s;
+    animation: fadeUp .5s ease both;
+  }
+  .table-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 40px rgba(0,212,255,.15);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .table-card:nth-child(1) { animation-delay: .05s; }
+  .table-card:nth-child(2) { animation-delay: .10s; }
+  .table-card:nth-child(3) { animation-delay: .15s; }
+  .table-card:nth-child(4) { animation-delay: .20s; }
+  .table-card:nth-child(5) { animation-delay: .25s; }
+  .table-card:nth-child(6) { animation-delay: .30s; }
+  .table-card:nth-child(7) { animation-delay: .35s; }
+
+  /* Table header stripe */
+  .table-head {
+    padding: 10px 14px;
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px; font-weight: 700;
+    letter-spacing: .5px;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-head .dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .table-head .schema {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; color: var(--muted);
+    margin-left: auto; letter-spacing: 1px;
+  }
+
+  /* colour themes per table */
+  .t-usuario   .table-head { background: rgba(124,58,237,.18); border-top: 3px solid var(--accent2); }
+  .t-rol       .table-head { background: rgba(124,58,237,.10); border-top: 3px solid #a78bfa; }
+  .t-comerciante  .table-head { background: rgba(0,212,255,.12); border-top: 3px solid var(--accent1); }
+  .t-estado    .table-head { background: rgba(16,185,129,.10); border-top: 3px solid var(--accent3); }
+  .t-municipio .table-head { background: rgba(245,158,11,.10); border-top: 3px solid var(--accent4); }
+  .t-establecimiento .table-head { background: rgba(239,68,68,.12); border-top: 3px solid var(--accent5); }
+
+  /* fields */
+  .fields { padding: 6px 0; }
+  .field {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 14px;
+    font-size: 11px;
+    border-bottom: 1px solid rgba(255,255,255,.03);
+    transition: background .15s;
+  }
+  .field:last-child { border-bottom: none; }
+  .field:hover { background: rgba(255,255,255,.03); }
+
+  .field-icon {
+    width: 14px; text-align: center; flex-shrink: 0;
+    font-size: 10px;
+  }
+  .pk-icon  { color: var(--pk); }
+  .fk-icon  { color: var(--fk); }
+  .nil-icon { color: var(--muted); }
+
+  .field-name { flex: 1; color: var(--text); }
+  .field-name.pk  { color: var(--pk); font-weight: 600; }
+  .field-name.fk  { color: var(--fk); }
+  .field-name.audit { color: #94a3b8; font-style: italic; }
+
+  .field-type {
+    color: var(--muted); font-size: 10px;
+    white-space: nowrap;
+  }
+
+  .tag-null {
+    font-size: 9px; color: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 3px; padding: 0 4px;
+  }
+  .tag-id {
+    font-size: 9px; color: var(--pk);
+    background: rgba(251,191,36,.12);
+    border-radius: 3px; padding: 0 4px;
+  }
+
+  /* ── LEGEND ── */
+  .legend {
+    position: relative; z-index: 10;
+    display: flex; gap: 24px; flex-wrap: wrap;
+    padding: 20px 48px;
+    border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  /* ── RELATION LINES (SVG) ── */
+  line, path { stroke-linecap: round; }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="width:100%; text-align:center; padding: 8px 0 4px;">
+    <div style="
+      font-family:'Syne',sans-serif;
+      font-size: 48px;
+      font-weight: 800;
+      color: #4a7ab5;
+      letter-spacing: 2px;
+      line-height: 1.1;
+      text-transform: uppercase;
+    ">FULLSTACK</div>
+    <div style="
+      font-family:'Syne',sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: #e2e8f0;
+      letter-spacing: 6px;
+      margin-top: 2px;
+    ">T-SQL</div>
+  </div>
+</header>
+
+<!-- SUBTÍTULO -->
+<div style="
+  position: relative; z-index: 10;
+  padding: 14px 48px;
+  background: rgba(0,212,255,.04);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--muted);
+">
+  <span style="color:#475569; letter-spacing:1px; text-transform:uppercase; font-size:10px;">Nombre Base de Datos</span>
+  <span style="color:var(--border);">│</span>
+  <span style="color:var(--accent1); font-weight:700; font-size:14px; font-family:'Syne',sans-serif; letter-spacing:0.5px;">
+    AgremiacionComercio
+  </span>
+  <span style="
+    margin-left: 8px;
+    padding: 2px 10px;
+    background: rgba(0,212,255,.08);
+    border: 1px solid rgba(0,212,255,.2);
+    border-radius: 4px;
+    font-size: 10px;
+    color: var(--accent1);
+    letter-spacing: 1px;
+  ">SQL SERVER</span>
+</div>
+
+<div class="canvas-wrap" id="canvasWrap">
+
+  <!-- SVG for relation lines drawn by JS -->
+  <svg class="relations-svg" id="relSvg"></svg>
+
+  <div class="diagram" id="diagram">
+
+    <!-- ROW 1 col 1: ROL -->
+    <div class="table-card t-rol" id="tRol" style="grid-column:1;grid-row:1">
+      <div class="table-head">
+        <span class="dot" style="background:#a78bfa"></span>
+        Rol
+        <span class="schema">dbo</span>
+      </div>
+      <div class="fields">
+        <div class="field">
+          <span class="field-icon pk-icon">🔑</span>
+          <span class="field-name pk">RolId</span>
+          <span class="field-type">INT</span>
+          <span class="tag-id">ID</span>
+        </div>
+        <div class="field">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name">Nombre</span>
+          <span class="field-type">NVARCHAR(50)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 1 col 2: USUARIO -->
+    <div class="table-card t-usuario" id="tUsuario" style="grid-column:2;grid-row:1">
+      <div class="table-head">
+        <span class="dot" style="background:var(--accent2)"></span>
+        Usuario
+        <span class="schema">dbo</span>
+      </div>
+      <div class="fields">
+        <div class="field">
+          <span class="field-icon pk-icon">🔑</span>
+          <span class="field-name pk">UsuarioId</span>
+          <span class="field-type">INT</span>
+          <span class="tag-id">ID</span>
+        </div>
+        <div class="field">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name">Nombre</span>
+          <span class="field-type">NVARCHAR(150)</span>
+        </div>
+        <div class="field">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name">CorreoElectronico</span>
+          <span class="field-type">NVARCHAR(255)</span>
+        </div>
+        <div class="field">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name">Contrasena</span>
+          <span class="field-type">NVARCHAR(255)</span>
+        </div>
+        <div class="field">
+          <span class="field-icon fk-icon">🔗</span>
+          <span class="field-name fk">RolId</span>
+          <span class="field-type">INT</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 1 col 3: ESTADO -->
+    <div class="table-card t-estado" id="tEstado" style="grid-column:3;grid-row:1">
+      <div class="table-head">
+        <span class="dot" style="background:var(--accent3)"></span>
+        Estado
+        <span class="schema">dbo</span>
+      </div>
+      <div class="fields">
+        <div class="field">
+          <span class="field-icon pk-icon">🔑</span>
+          <span class="field-name pk">EstadoId</span>
+          <span class="field-type">INT</span>
+          <span class="tag-id">ID</span>
+        </div>
+        <div class="field">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name">Nombre</span>
+          <span class="field-type">NVARCHAR(50)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 1 col 4: MUNICIPIO -->
+    <div class="table-card t-municipio" id="tMunicipio" style="grid-column:4;grid-row:1">
+      <div class="table-head">
+        <span class="dot" style="background:var(--accent4)"></span>
+        Municipio
+        <span class="schema">dbo</span>
+      </div>
+      <div class="fields">
+        <div class="field">
+          <span class="field-icon pk-icon">🔑</span>
+          <span class="field-name pk">MunicipioId</span>
+          <span class="field-type">INT</span>
+          <span class="tag-id">ID</span>
+        </div>
+        <div class="field">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name">Nombre</span>
+          <span class="field-type">NVARCHAR(150)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 2 (span cols 2-3): COMERCIANTE -->
+    <div class="table-card t-comerciante" id="tComerciante" style="grid-column:2/4;grid-row:2">
+      <div class="table-head">
+        <span class="dot" style="background:var(--accent1)"></span>
+        Comerciante
+        <span class="schema">dbo</span>
+      </div>
+      <div class="fields" style="display:grid;grid-template-columns:1fr 1fr;">
+        <div class="field">
+          <span class="field-icon pk-icon">🔑</span>
+          <span class="field-name pk">ComercianteId</span>
+          <span class="field-type">INT</span>
+          <span class="tag-id">ID</span>
+        </div>
+        <div class="field">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name">NombreRazonSocial</span>
+          <span class="field-type">NVARCHAR(255)</span>
+        </div>
+        <div class="field">
+          <span class="field-icon fk-icon">🔗</span>
+          <span class="field-name fk">MunicipioId</span>
+          <span class="field-type">INT</span>
+        </div>
+        <div class="field">
+          <span class="field-icon fk-icon">🔗</span>
+          <span class="field-name fk">EstadoId</span>
+          <span class="field-type">INT</span>
+        </div>
+        <div class="field">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name">Telefono</span>
+          <span class="field-type">NVARCHAR(20)</span>
+          <span class="tag-null">NULL</span>
+        </div>
+        <div class="field">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name">CorreoElectronico</span>
+          <span class="field-type">NVARCHAR(255)</span>
+          <span class="tag-null">NULL</span>
+        </div>
+        <div class="field">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name">FechaRegistro</span>
+          <span class="field-type">DATE</span>
+        </div>
+        <div class="field">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name audit">FechaActualizacion</span>
+          <span class="field-type">DATETIME2</span>
+          <span class="tag-null">NULL</span>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name audit">UsuarioAuditoria</span>
+          <span class="field-type">NVARCHAR(255)</span>
+          <span class="tag-null">NULL</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 3 (span cols 2-3): ESTABLECIMIENTO -->
+    <div class="table-card t-establecimiento" id="tEstablecimiento" style="grid-column:2/4;grid-row:3">
+      <div class="table-head">
+        <span class="dot" style="background:var(--accent5)"></span>
+        Establecimiento
+        <span class="schema">dbo</span>
+      </div>
+      <div class="fields" style="display:grid;grid-template-columns:1fr 1fr;">
+        <div class="field">
+          <span class="field-icon pk-icon">🔑</span>
+          <span class="field-name pk">EstablecimientoId</span>
+          <span class="field-type">INT</span>
+          <span class="tag-id">ID</span>
+        </div>
+        <div class="field">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name">Nombre</span>
+          <span class="field-type">NVARCHAR(255)</span>
+        </div>
+        <div class="field">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name">Ingresos</span>
+          <span class="field-type">DECIMAL(18,2)</span>
+        </div>
+        <div class="field">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name">NumeroEmpleados</span>
+          <span class="field-type">INT</span>
+        </div>
+        <div class="field">
+          <span class="field-icon fk-icon">🔗</span>
+          <span class="field-name fk">ComercianteId</span>
+          <span class="field-type">INT</span>
+        </div>
+        <div class="field">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name audit">FechaActualizacion</span>
+          <span class="field-type">DATETIME2</span>
+          <span class="tag-null">NULL</span>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <span class="field-icon nil-icon">▪</span>
+          <span class="field-name audit">UsuarioAuditoria</span>
+          <span class="field-type">NVARCHAR(255)</span>
+          <span class="tag-null">NULL</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /diagram -->
+</div><!-- /canvas-wrap -->
+
+<!-- ORDEN DE EJECUCIÓN DE SCRIPTS -->
+<div style="
+  position: relative; z-index: 10;
+  margin: 0 32px 24px;
+">
+  <div style="
+    padding: 18px 24px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+  ">
+
+    <!-- Título -->
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
+      <span style="font-size:18px;">🗂</span>
+      <span style="font-family:'Syne',sans-serif; font-size:14px; font-weight:800; color:#fff; letter-spacing:0.5px;">
+        Orden de Ejecución de Scripts
+      </span>
+      <span style="
+        padding: 2px 10px;
+        background: rgba(251,191,36,.10);
+        border: 1px solid rgba(251,191,36,.3);
+        border-radius: 4px;
+        font-size: 10px; color: #fbbf24;
+        font-family:'JetBrains Mono',monospace;
+        letter-spacing:1px;
+      ">SQL SERVER · T-SQL</span>
+    </div>
+
+    <!-- Scripts -->
+    <div style="display:flex; flex-direction:column; gap:12px;">
+
+      <!-- Script 01 -->
+      <div style="display:flex; align-items:stretch; gap:0; border:1px solid rgba(0,212,255,.2); border-radius:10px; overflow:hidden;">
+        <div style="
+          min-width:56px; display:flex; align-items:center; justify-content:center;
+          background: rgba(0,212,255,.12);
+          font-family:'Syne',sans-serif; font-weight:800; font-size:20px; color:var(--accent1);
+          border-right: 1px solid rgba(0,212,255,.2);
+        ">01</div>
+        <div style="padding:12px 16px; flex:1; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.8; color:#cbd5e1;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span style="color:var(--accent1); font-family:'Syne',sans-serif; font-weight:700; font-size:12px;">
+              01_Crear_DatabaseTablesIndex.sql
+            </span>
+            <span style="
+              padding: 1px 8px; border-radius:3px; font-size:9px; letter-spacing:1px;
+              background:rgba(0,212,255,.08); border:1px solid rgba(0,212,255,.2); color:var(--accent1);
+            ">DDL</span>
+          </div>
+          <div style="color:#94a3b8;">
+            Crea la <strong style="color:#e2e8f0;">base de datos</strong> <code>AgremiacionComercio</code> y todas las
+            <strong style="color:#e2e8f0;">tablas</strong> del modelo:
+            <code>Rol</code>, <code>Usuario</code>, <code>Municipio</code>, <code>Estado</code>,
+            <code>Comerciante</code> y <code>Establecimiento</code>.
+            También define los <strong style="color:#e2e8f0;">índices</strong> para optimizar las consultas más frecuentes.
+            <strong style="color:#ef4444;">Debe ejecutarse primero</strong> — los demás scripts dependen de esta estructura.
+          </div>
+        </div>
+      </div>
+
+      <!-- Flecha -->
+      <div style="text-align:center; color:#1e2d45; font-size:18px; line-height:1;">▼</div>
+
+      <!-- Script 02 -->
+      <div style="display:flex; align-items:stretch; gap:0; border:1px solid rgba(124,58,237,.2); border-radius:10px; overflow:hidden;">
+        <div style="
+          min-width:56px; display:flex; align-items:center; justify-content:center;
+          background: rgba(124,58,237,.12);
+          font-family:'Syne',sans-serif; font-weight:800; font-size:20px; color:#a78bfa;
+          border-right: 1px solid rgba(124,58,237,.2);
+        ">02</div>
+        <div style="padding:12px 16px; flex:1; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.8; color:#cbd5e1;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span style="color:#a78bfa; font-family:'Syne',sans-serif; font-weight:700; font-size:12px;">
+              02_Triggers_Auditoria.sql
+            </span>
+            <span style="
+              padding: 1px 8px; border-radius:3px; font-size:9px; letter-spacing:1px;
+              background:rgba(124,58,237,.08); border:1px solid rgba(124,58,237,.2); color:#a78bfa;
+            ">TRIGGER</span>
+          </div>
+          <div style="color:#94a3b8;">
+            Crea los <strong style="color:#e2e8f0;">triggers de auditoría</strong>
+            <code>trg_Comerciante_Auditoria</code> y <code>trg_Establecimiento_Auditoria</code>.
+            Deben crearse <strong style="color:#e2e8f0;">después de las tablas</strong> (Script 01)
+            ya que los triggers se asocian directamente a ellas.
+            Sin este script los campos <code>FechaActualizacion</code> y <code>UsuarioAuditoria</code>
+            no se poblarán automáticamente.
+          </div>
+        </div>
+      </div>
+
+      <!-- Flecha -->
+      <div style="text-align:center; color:#1e2d45; font-size:18px; line-height:1;">▼</div>
+
+      <!-- Script 03 -->
+      <div style="display:flex; align-items:stretch; gap:0; border:1px solid rgba(16,185,129,.2); border-radius:10px; overflow:hidden;">
+        <div style="
+          min-width:56px; display:flex; align-items:center; justify-content:center;
+          background: rgba(16,185,129,.12);
+          font-family:'Syne',sans-serif; font-weight:800; font-size:20px; color:var(--accent3);
+          border-right: 1px solid rgba(16,185,129,.2);
+        ">03</div>
+        <div style="padding:12px 16px; flex:1; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.8; color:#cbd5e1;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span style="color:var(--accent3); font-family:'Syne',sans-serif; font-weight:700; font-size:12px;">
+              03_Datos_Semilla.sql
+            </span>
+            <span style="
+              padding: 1px 8px; border-radius:3px; font-size:9px; letter-spacing:1px;
+              background:rgba(16,185,129,.08); border:1px solid rgba(16,185,129,.2); color:var(--accent3);
+            ">DML</span>
+          </div>
+          <div style="color:#94a3b8;">
+            Inserta los <strong style="color:#e2e8f0;">datos iniciales</strong> necesarios para el funcionamiento del sistema:
+            catálogos (<code>Rol</code>, <code>Estado</code>, <code>Municipio</code>),
+            <strong style="color:#e2e8f0;">2 usuarios</strong> (uno por cada rol),
+            <strong style="color:#e2e8f0;">5 comerciantes</strong> y
+            <strong style="color:#e2e8f0;">10 establecimientos</strong>.
+            Debe ejecutarse después de los triggers para que los campos de auditoría
+            se pueblen automáticamente al insertar.
+          </div>
+        </div>
+      </div>
+
+      <!-- Flecha -->
+      <div style="text-align:center; color:#1e2d45; font-size:18px; line-height:1;">▼</div>
+
+      <!-- Script 04 -->
+      <div style="display:flex; align-items:stretch; gap:0; border:1px solid rgba(245,158,11,.2); border-radius:10px; overflow:hidden;">
+        <div style="
+          min-width:56px; display:flex; align-items:center; justify-content:center;
+          background: rgba(245,158,11,.12);
+          font-family:'Syne',sans-serif; font-weight:800; font-size:20px; color:var(--accent4);
+          border-right: 1px solid rgba(245,158,11,.2);
+        ">04</div>
+        <div style="padding:12px 16px; flex:1; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.8; color:#cbd5e1;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <span style="color:var(--accent4); font-family:'Syne',sans-serif; font-weight:700; font-size:12px;">
+              04_SP_ReporteComerciantes.sql
+            </span>
+            <span style="
+              padding: 1px 8px; border-radius:3px; font-size:9px; letter-spacing:1px;
+              background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.2); color:var(--accent4);
+            ">SP · FUNCTION</span>
+          </div>
+          <div style="color:#94a3b8;">
+            Crea la función auxiliar <code>fn_ObtenerResumenEstablecimientos</code> y el procedimiento almacenado
+            <code>sp_ReporteComerciantes</code>. Debe ejecutarse de <strong style="color:#e2e8f0;">último</strong>
+            ya que depende de que las tablas y los datos semilla existan previamente.
+            Para ejecutar el reporte basta con correr:
+            <code style="color:#fbbf24;">EXEC dbo.sp_ReporteComerciantes;</code>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><span class="legend-dot" style="background:var(--pk)"></span> PK · Llave Primaria (IDENTITY)</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--fk)"></span> FK · Llave Foránea</div>
+  <div class="legend-item"><span class="legend-dot" style="background:var(--muted)"></span> Campo Opcional (NULL)</div>
+  <div class="legend-item"><span class="legend-dot" style="background:#94a3b8"></span> Campo de Auditoría (Trigger)</div>
+  <div class="legend-item" style="margin-left:auto;color:#475569;font-size:10px;">
+    Relaciones: 1 ──────── N
+  </div>
+</div>
+
+<!-- NORMALIZACIONES -->
+<div style="
+  position: relative; z-index: 10;
+  margin: 0 32px 24px;
+">
+  <div style="
+    padding: 18px 24px 6px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+  ">
+    <!-- Título sección -->
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
+      <span style="font-size:18px;">🔷</span>
+      <span style="font-family:'Syne',sans-serif; font-size:14px; font-weight:800; color:#fff; letter-spacing:0.5px;">
+        Normalizaciones Aplicadas
+      </span>
+      <span style="
+        padding: 2px 10px;
+        background: rgba(124,58,237,.15);
+        border: 1px solid rgba(124,58,237,.35);
+        border-radius: 4px;
+        font-size: 10px; color: #a78bfa;
+        font-family:'JetBrains Mono',monospace;
+        letter-spacing:1px;
+      ">3FN · Tercera Forma Normal</span>
+    </div>
+
+    <!-- Grid de 3 tarjetas -->
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:18px;">
+
+      <!-- Rol -->
+      <div style="
+        padding: 14px 16px;
+        border: 1px solid rgba(167,139,250,.25);
+        border-left: 4px solid #a78bfa;
+        border-radius: 8px;
+        background: rgba(124,58,237,.07);
+        font-family:'JetBrains Mono',monospace;
+        font-size:11px; line-height:1.7; color:#cbd5e1;
+      ">
+        <div style="font-family:'Syne',sans-serif; font-weight:700; font-size:13px; color:#a78bfa; margin-bottom:8px;">
+          1 · Tabla <code style="background:rgba(167,139,250,.15); padding:1px 6px; border-radius:4px;">Rol</code>
+        </div>
+        <div style="margin-bottom:8px;">
+          <span style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px;">Sin normalizar</span><br>
+          <code style="color:#ef4444;">Rol NVARCHAR(50)</code><br>
+          <span style="color:#64748b; font-size:10px;">'Administrador' | 'Auxiliar de Registro'</span>
+        </div>
+        <div style="border-top:1px solid rgba(255,255,255,.06); padding-top:8px;">
+          <span style="color:#a78bfa; font-size:10px; text-transform:uppercase; letter-spacing:1px;">¿Por qué?</span><br>
+          Evita texto repetido en cada fila de <code>Usuario</code>. Si el nombre del rol cambia, se actualiza <strong style="color:#e2e8f0;">un solo registro</strong> en el catálogo. Permite agregar nuevos roles sin alterar el esquema.
+        </div>
+      </div>
+
+      <!-- Municipio -->
+      <div style="
+        padding: 14px 16px;
+        border: 1px solid rgba(245,158,11,.25);
+        border-left: 4px solid #f59e0b;
+        border-radius: 8px;
+        background: rgba(245,158,11,.07);
+        font-family:'JetBrains Mono',monospace;
+        font-size:11px; line-height:1.7; color:#cbd5e1;
+      ">
+        <div style="font-family:'Syne',sans-serif; font-weight:700; font-size:13px; color:#f59e0b; margin-bottom:8px;">
+          2 · Tabla <code style="background:rgba(245,158,11,.15); padding:1px 6px; border-radius:4px;">Municipio</code>
+        </div>
+        <div style="margin-bottom:8px;">
+          <span style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px;">Sin normalizar</span><br>
+          <code style="color:#ef4444;">Municipio NVARCHAR(150)</code><br>
+          <span style="color:#64748b; font-size:10px;">'Bogotá' | 'bogota' | 'Bogotá D.C.'</span>
+        </div>
+        <div style="border-top:1px solid rgba(255,255,255,.06); padding-top:8px;">
+          <span style="color:#f59e0b; font-size:10px; text-transform:uppercase; letter-spacing:1px;">¿Por qué?</span><br>
+          Texto libre genera <strong style="color:#e2e8f0;">inconsistencias graves</strong>: variantes del mismo nombre se tratan como municipios distintos. El catálogo garantiza integridad referencial y confiabilidad en filtros y reportes.
+        </div>
+      </div>
+
+      <!-- Estado -->
+      <div style="
+        padding: 14px 16px;
+        border: 1px solid rgba(16,185,129,.25);
+        border-left: 4px solid #10b981;
+        border-radius: 8px;
+        background: rgba(16,185,129,.07);
+        font-family:'JetBrains Mono',monospace;
+        font-size:11px; line-height:1.7; color:#cbd5e1;
+      ">
+        <div style="font-family:'Syne',sans-serif; font-weight:700; font-size:13px; color:#10b981; margin-bottom:8px;">
+          3 · Tabla <code style="background:rgba(16,185,129,.15); padding:1px 6px; border-radius:4px;">Estado</code>
+        </div>
+        <div style="margin-bottom:8px;">
+          <span style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px;">Sin normalizar</span><br>
+          <code style="color:#ef4444;">Estado NVARCHAR(20)</code><br>
+          <span style="color:#64748b; font-size:10px;">'Activo' | 'Inactivo'</span>
+        </div>
+        <div style="border-top:1px solid rgba(255,255,255,.06); padding-top:8px;">
+          <span style="color:#10b981; font-size:10px; text-transform:uppercase; letter-spacing:1px;">¿Por qué?</span><br>
+          Si el negocio requiere estados nuevos como <code>'Suspendido'</code>, solo se inserta un registro. Con texto plano habría que modificar el esquema y un <code>CHECK constraint</code>.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Resumen general -->
+    <div style="
+      padding: 12px 16px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.06);
+      font-family:'JetBrains Mono',monospace;
+      font-size:11px; line-height:1.8; color:#94a3b8;
+      margin-bottom:16px;
+    ">
+      <span style="color:#e2e8f0; font-weight:600;">📌 Principio general —</span>
+      Las tres normalizaciones aplican <strong style="color:#e2e8f0;">3FN (Tercera Forma Normal)</strong>: eliminan dependencias transitivas
+      y evitan que valores de dominio controlado vivan como texto libre en tablas de negocio.
+      El resultado es un modelo más <strong style="color:#e2e8f0;">robusto, consistente y fácil de mantener</strong> a futuro.
+    </div>
+  </div>
+</div>
+
+<!-- TRIGGERS Y AUDITORÍA -->
+<div style="
+  position: relative; z-index: 10;
+  margin: 0 32px 24px;
+">
+  <div style="
+    padding: 18px 24px 18px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+  ">
+
+    <!-- Título sección -->
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
+      <span style="font-size:18px;">⚡</span>
+      <span style="font-family:'Syne',sans-serif; font-size:14px; font-weight:800; color:#fff; letter-spacing:0.5px;">
+        Triggers de Auditoría
+      </span>
+      <span style="
+        padding: 2px 10px;
+        background: rgba(0,212,255,.10);
+        border: 1px solid rgba(0,212,255,.3);
+        border-radius: 4px;
+        font-size: 10px; color: var(--accent1);
+        font-family:'JetBrains Mono',monospace;
+        letter-spacing:1px;
+      ">AFTER INSERT · AFTER UPDATE</span>
+    </div>
+
+    <!-- Grid triggers -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;">
+
+      <!-- Trigger Comerciante -->
+      <div style="
+        border: 1px solid rgba(0,212,255,.2);
+        border-left: 4px solid var(--accent1);
+        border-radius: 8px;
+        background: rgba(0,212,255,.05);
+        overflow:hidden;
+      ">
+        <div style="
+          padding: 10px 16px;
+          background: rgba(0,212,255,.08);
+          border-bottom: 1px solid rgba(0,212,255,.15);
+          font-family:'Syne',sans-serif; font-weight:700;
+          font-size:12px; color:var(--accent1);
+          display:flex; align-items:center; gap:8px;
+        ">
+          <span>⚡</span> trg_Comerciante_Auditoria
+        </div>
+        <div style="padding:14px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.8; color:#cbd5e1;">
+          <div style="margin-bottom:8px;">
+            <span style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px;">Tabla</span><br>
+            <code style="color:var(--accent1);">dbo.Comerciante</code>
+          </div>
+          <div style="margin-bottom:8px;">
+            <span style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px;">Evento</span><br>
+            <code style="color:#fbbf24;">AFTER INSERT, UPDATE</code>
+          </div>
+          <div style="border-top:1px solid rgba(255,255,255,.06); padding-top:10px;">
+            <span style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px;">¿Qué hace?</span><br>
+            Cada vez que se <strong style="color:#e2e8f0;">inserta o modifica</strong> un comerciante, actualiza automáticamente
+            <code style="color:#fbbf24;">FechaActualizacion</code> con la fecha y hora exacta del momento,
+            y <code style="color:#fbbf24;">UsuarioAuditoria</code> con el usuario de la sesión SQL Server activa (<code>SYSTEM_USER</code>).
+          </div>
+        </div>
+      </div>
+
+      <!-- Trigger Establecimiento -->
+      <div style="
+        border: 1px solid rgba(239,68,68,.2);
+        border-left: 4px solid var(--accent5);
+        border-radius: 8px;
+        background: rgba(239,68,68,.05);
+        overflow:hidden;
+      ">
+        <div style="
+          padding: 10px 16px;
+          background: rgba(239,68,68,.08);
+          border-bottom: 1px solid rgba(239,68,68,.15);
+          font-family:'Syne',sans-serif; font-weight:700;
+          font-size:12px; color:var(--accent5);
+          display:flex; align-items:center; gap:8px;
+        ">
+          <span>⚡</span> trg_Establecimiento_Auditoria
+        </div>
+        <div style="padding:14px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.8; color:#cbd5e1;">
+          <div style="margin-bottom:8px;">
+            <span style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px;">Tabla</span><br>
+            <code style="color:var(--accent5);">dbo.Establecimiento</code>
+          </div>
+          <div style="margin-bottom:8px;">
+            <span style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px;">Evento</span><br>
+            <code style="color:#fbbf24;">AFTER INSERT, UPDATE</code>
+          </div>
+          <div style="border-top:1px solid rgba(255,255,255,.06); padding-top:10px;">
+            <span style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px;">¿Qué hace?</span><br>
+            Cada vez que se <strong style="color:#e2e8f0;">inserta o modifica</strong> un establecimiento, actualiza automáticamente
+            <code style="color:#fbbf24;">FechaActualizacion</code> con la fecha y hora exacta del momento,
+            y <code style="color:#fbbf24;">UsuarioAuditoria</code> con el usuario de la sesión SQL Server activa (<code>SYSTEM_USER</code>).
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Campos de auditoría -->
+    <div style="
+      border: 1px solid rgba(148,163,184,.15);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 0;
+    ">
+      <div style="
+        padding: 10px 16px;
+        background: rgba(148,163,184,.07);
+        border-bottom: 1px solid rgba(148,163,184,.12);
+        font-family:'Syne',sans-serif; font-weight:700;
+        font-size:12px; color:#94a3b8;
+        display:flex; align-items:center; gap:8px;
+      ">
+        <span>🗂</span> Campos de Auditoría — Detalle
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0;">
+
+        <!-- FechaActualizacion -->
+        <div style="
+          padding: 14px 18px;
+          border-right: 1px solid rgba(255,255,255,.05);
+          border-bottom: 1px solid rgba(255,255,255,.05);
+          font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.8; color:#cbd5e1;
+        ">
+          <div style="font-family:'Syne',sans-serif; font-weight:700; font-size:12px; color:#fbbf24; margin-bottom:6px;">
+            📅 FechaActualizacion
+          </div>
+          <div style="margin-bottom:6px;">
+            <span style="color:#64748b; font-size:10px;">TIPO</span> &nbsp;
+            <code style="color:#a78bfa;">DATETIME2(0)</code>
+            &nbsp;
+            <span style="
+              font-size:9px; color:#64748b;
+              border:1px solid var(--border); border-radius:3px; padding:0 4px;
+            ">NULL</span>
+          </div>
+          <div style="color:#94a3b8;">
+            Registra la <strong style="color:#e2e8f0;">fecha y hora exacta</strong> en que el registro fue creado
+            o modificado por última vez. Es poblado automáticamente por el trigger usando
+            <code style="color:#fbbf24;">GETDATE()</code> — nunca se debe ingresar manualmente.
+          </div>
+        </div>
+
+        <!-- UsuarioAuditoria -->
+        <div style="
+          padding: 14px 18px;
+          border-bottom: 1px solid rgba(255,255,255,.05);
+          font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.8; color:#cbd5e1;
+        ">
+          <div style="font-family:'Syne',sans-serif; font-weight:700; font-size:12px; color:#fbbf24; margin-bottom:6px;">
+            👤 UsuarioAuditoria
+          </div>
+          <div style="margin-bottom:6px;">
+            <span style="color:#64748b; font-size:10px;">TIPO</span> &nbsp;
+            <code style="color:#a78bfa;">NVARCHAR(255)</code>
+            &nbsp;
+            <span style="
+              font-size:9px; color:#64748b;
+              border:1px solid var(--border); border-radius:3px; padding:0 4px;
+            ">NULL</span>
+          </div>
+          <div style="color:#94a3b8;">
+            Registra el <strong style="color:#e2e8f0;">nombre del usuario de SQL Server</strong> que ejecutó la operación.
+            Es poblado automáticamente por el trigger usando
+            <code style="color:#fbbf24;">SYSTEM_USER</code>. En producción puede reemplazarse por el usuario
+            de la aplicación enviado desde el backend.
+          </div>
+        </div>
+
+        <!-- Tablas afectadas -->
+        <div style="
+          padding: 14px 18px;
+          grid-column: 1 / -1;
+          font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.8; color:#94a3b8;
+          background: rgba(255,255,255,.02);
+        ">
+          <span style="color:#e2e8f0; font-weight:600;">📌 Tablas que tienen campos de auditoría:</span>
+          &nbsp;
+          <code style="color:var(--accent1); background:rgba(0,212,255,.08); padding:2px 8px; border-radius:4px;">dbo.Comerciante</code>
+          &nbsp;&nbsp;
+          <code style="color:var(--accent5); background:rgba(239,68,68,.08); padding:2px 8px; border-radius:4px;">dbo.Establecimiento</code>
+          &nbsp;&nbsp;
+          <span style="color:#475569;"></span>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- REPORTE DE COMERCIANTES -->
+<div style="
+  position: relative; z-index: 10;
+  margin: 0 32px 24px;
+">
+  <div style="
+    padding: 18px 24px 18px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+  ">
+
+    <!-- Título sección -->
+    <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
+      <span style="font-size:18px;">📊</span>
+      <span style="font-family:'Syne',sans-serif; font-size:14px; font-weight:800; color:#fff; letter-spacing:0.5px;">
+        Reporte de Comerciantes
+      </span>
+      <span style="
+        padding: 2px 10px;
+        background: rgba(16,185,129,.10);
+        border: 1px solid rgba(16,185,129,.3);
+        border-radius: 4px;
+        font-size: 10px; color: var(--accent3);
+        font-family:'JetBrains Mono',monospace;
+        letter-spacing:1px;
+      ">STORED PROCEDURE · FUNCTION</span>
+    </div>
+
+    <!-- Grid: SP + Función -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:18px;">
+
+      <!-- Stored Procedure -->
+      <div style="
+        border: 1px solid rgba(16,185,129,.2);
+        border-left: 4px solid var(--accent3);
+        border-radius: 8px;
+        background: rgba(16,185,129,.05);
+        overflow:hidden;
+      ">
+        <div style="
+          padding: 10px 16px;
+          background: rgba(16,185,129,.08);
+          border-bottom: 1px solid rgba(16,185,129,.15);
+          font-family:'Syne',sans-serif; font-weight:700;
+          font-size:12px; color:var(--accent3);
+          display:flex; align-items:center; gap:8px;
+        ">
+          <span>⚙️</span> sp_ReporteComerciantes
+        </div>
+        <div style="padding:14px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.8; color:#cbd5e1;">
+          <div style="margin-bottom:8px;">
+            <span style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px;">Tipo</span><br>
+            <code style="color:var(--accent3);">STORED PROCEDURE</code>
+          </div>
+          <div style="margin-bottom:8px;">
+            <span style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px;">Ejecución</span><br>
+            <code style="color:#fbbf24;">EXEC dbo.sp_ReporteComerciantes;</code>
+          </div>
+          <div style="border-top:1px solid rgba(255,255,255,.06); padding-top:10px;">
+            <span style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px;">¿Qué hace?</span><br>
+            Retorna todos los comerciantes con estado <code style="color:#10b981;">'Activo'</code>, ordenados
+            de forma <strong style="color:#e2e8f0;">descendente</strong> por cantidad de establecimientos.
+            Por cada comerciante calcula automáticamente la cantidad de establecimientos,
+            el total de ingresos y la cantidad de empleados usando la función auxiliar.
+          </div>
+        </div>
+      </div>
+
+      <!-- Función auxiliar -->
+      <div style="
+        border: 1px solid rgba(124,58,237,.2);
+        border-left: 4px solid var(--accent2);
+        border-radius: 8px;
+        background: rgba(124,58,237,.05);
+        overflow:hidden;
+      ">
+        <div style="
+          padding: 10px 16px;
+          background: rgba(124,58,237,.08);
+          border-bottom: 1px solid rgba(124,58,237,.15);
+          font-family:'Syne',sans-serif; font-weight:700;
+          font-size:12px; color:#a78bfa;
+          display:flex; align-items:center; gap:8px;
+        ">
+          <span>🔧</span> fn_ObtenerResumenEstablecimientos
+        </div>
+        <div style="padding:14px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.8; color:#cbd5e1;">
+          <div style="margin-bottom:8px;">
+            <span style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px;">Tipo</span><br>
+            <code style="color:#a78bfa;">INLINE TABLE-VALUED FUNCTION</code>
+          </div>
+          <div style="margin-bottom:8px;">
+            <span style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px;">Retorna</span><br>
+            <code style="color:#fbbf24;">TABLE (ComercianteId, CantidadEstablecimientos, TotalIngresos, CantidadEmpleados)</code>
+          </div>
+          <div style="border-top:1px solid rgba(255,255,255,.06); padding-top:10px;">
+            <span style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px;">¿Por qué se creó?</span><br>
+            Encapsula los cálculos de <code>COUNT</code>, <code>SUM</code> de ingresos y <code>SUM</code> de empleados
+            agrupados por comerciante. Separarlo en una función independiente la hace
+            <strong style="color:#e2e8f0;">reutilizable</strong> en otras consultas o procedimientos futuros,
+            y mantiene el SP principal <strong style="color:#e2e8f0;">limpio y legible</strong>.
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Columnas del reporte -->
+    <div style="
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    ">
+      <div style="
+        padding: 10px 16px;
+        background: rgba(255,255,255,.04);
+        border-bottom: 1px solid rgba(255,255,255,.07);
+        font-family:'Syne',sans-serif; font-weight:700;
+        font-size:12px; color:#94a3b8;
+        display:flex; align-items:center; gap:8px;
+      ">
+        <span>📋</span> Estructura del resultado — Columnas retornadas
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(3,1fr);">
+
+        <!-- col 1 -->
+        <div style="padding:12px 16px; border-right:1px solid rgba(255,255,255,.05); font-family:'JetBrains Mono',monospace; font-size:11px; line-height:2; color:#94a3b8;">
+          <div style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Datos del Comerciante</div>
+          <div>📌 <code style="color:#e2e8f0;">Nombre / Razón Social</code></div>
+          <div>📌 <code style="color:#e2e8f0;">Municipio</code></div>
+          <div>📌 <code style="color:#e2e8f0;">Teléfono</code></div>
+          <div>📌 <code style="color:#e2e8f0;">Correo Electrónico</code></div>
+          <div>📌 <code style="color:#e2e8f0;">Fecha de Registro</code></div>
+          <div>📌 <code style="color:#e2e8f0;">Estado</code></div>
+        </div>
+
+        <!-- col 2 -->
+        <div style="padding:12px 16px; border-right:1px solid rgba(255,255,255,.05); font-family:'JetBrains Mono',monospace; font-size:11px; line-height:2; color:#94a3b8;">
+          <div style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Calculados por la Función</div>
+          <div>🔢 <code style="color:#10b981;">Cantidad de Establecimientos</code></div>
+          <div>💰 <code style="color:#10b981;">Total Ingresos</code></div>
+          <div>👥 <code style="color:#10b981;">Cantidad de Empleados</code></div>
+        </div>
+
+        <!-- col 3 -->
+        <div style="padding:12px 16px; font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.8; color:#94a3b8;">
+          <div style="color:#64748b; font-size:10px; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">Detalles Técnicos</div>
+          <div style="margin-bottom:6px;"><span style="color:#e2e8f0;">Filtro:</span> Solo comerciantes <code style="color:#10b981;">Activos</code></div>
+          <div style="margin-bottom:6px;"><span style="color:#e2e8f0;">Orden:</span> <code style="color:#fbbf24;">DESC</code> por cantidad de establecimientos</div>
+          <div style="margin-bottom:6px;"><span style="color:#e2e8f0;">JOIN:</span> <code style="color:#a78bfa;">LEFT JOIN</code> con la función para incluir comerciantes sin establecimientos</div>
+          <div><span style="color:#e2e8f0;">Nulos:</span> <code style="color:#a78bfa;">ISNULL</code> muestra <code>0</code> o <code>'N/A'</code> en lugar de vacíos</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- NOTA DE SEGURIDAD -->
+<div style="
+  position: relative; z-index: 10;
+  margin: 0 32px 32px;
+  padding: 14px 20px;
+  border: 1px solid rgba(251,191,36,.3);
+  border-left: 4px solid #fbbf24;
+  border-radius: 8px;
+  background: rgba(251,191,36,.05);
+  display: flex; align-items: flex-start; gap: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #cbd5e1;
+">
+  <span style="font-size:18px; flex-shrink:0; margin-top:1px;">⚠️</span>
+  <div>
+    <span style="color:#fbbf24; font-weight:700; font-family:'Syne',sans-serif; font-size:12px; display:block; margin-bottom:4px;">
+      Nota de Seguridad — Campo <code style="background:rgba(251,191,36,.15); padding:1px 6px; border-radius:4px; font-size:11px;">Usuario.Contrasena</code>
+    </span>
+    El campo <code style="color:#fbbf24;">Contrasena NVARCHAR(255)</code> está definido para almacenar el 
+    <strong style="color:#e2e8f0;">hash</strong> de la contraseña, <strong style="color:#ef4444;">no el texto plano</strong>.
+    El hashing debe realizarse en la <strong style="color:#e2e8f0;">capa de aplicación</strong> (backend) antes de persistir el dato,
+    usando algoritmos como <code style="color:#a78bfa;">bcrypt</code>, <code style="color:#a78bfa;">Argon2</code> o <code style="color:#a78bfa;">PBKDF2</code>.
+    SQL Server únicamente almacena el resultado. Nunca se debe guardar ni comparar contraseñas en texto plano.
+  </div>
+</div>
+
+<script>
+// Draw relation lines between cards using SVG
+(function () {
+  const wrap = document.getElementById('canvasWrap');
+  const svg  = document.getElementById('relSvg');
+
+  function midY(el) {
+    const r = el.getBoundingClientRect();
+    const w = wrap.getBoundingClientRect();
+    return r.top - w.top + wrap.scrollTop + r.height / 2;
+  }
+  function midX(el) {
+    const r = el.getBoundingClientRect();
+    const w = wrap.getBoundingClientRect();
+    return r.left - w.left + wrap.scrollLeft + r.width / 2;
+  }
+  function rightX(el) {
+    const r = el.getBoundingClientRect();
+    const w = wrap.getBoundingClientRect();
+    return r.right - w.left + wrap.scrollLeft;
+  }
+  function leftX(el) {
+    const r = el.getBoundingClientRect();
+    const w = wrap.getBoundingClientRect();
+    return r.left - w.left + wrap.scrollLeft;
+  }
+  function topY(el) {
+    const r = el.getBoundingClientRect();
+    const w = wrap.getBoundingClientRect();
+    return r.top - w.top + wrap.scrollTop;
+  }
+  function bottomY(el) {
+    const r = el.getBoundingClientRect();
+    const w = wrap.getBoundingClientRect();
+    return r.bottom - w.top + wrap.scrollTop;
+  }
+
+  function drawPath(x1,y1,x2,y2,color,label) {
+    const mx = (x1+x2)/2;
+    const d  = `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', d);
+    path.setAttribute('stroke', color);
+    path.setAttribute('stroke-width', '1.5');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke-dasharray', '');
+    path.setAttribute('opacity', '0.6');
+    svg.appendChild(path);
+
+    // cardinality label
+    if (label) {
+      const tx = document.createElementNS('http://www.w3.org/2000/svg','text');
+      tx.setAttribute('x', mx);
+      tx.setAttribute('y', (y1+y2)/2 - 4);
+      tx.setAttribute('fill', color);
+      tx.setAttribute('font-size', '10');
+      tx.setAttribute('font-family', 'JetBrains Mono, monospace');
+      tx.setAttribute('text-anchor', 'middle');
+      tx.setAttribute('opacity','0.8');
+      tx.textContent = label;
+      svg.appendChild(tx);
+    }
+
+    // end dot
+    const circle = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circle.setAttribute('cx', x2); circle.setAttribute('cy', y2); circle.setAttribute('r', '3');
+    circle.setAttribute('fill', color); circle.setAttribute('opacity','0.8');
+    svg.appendChild(circle);
+  }
+
+  function draw() {
+    svg.innerHTML = '';
+    svg.setAttribute('width',  wrap.scrollWidth);
+    svg.setAttribute('height', wrap.scrollHeight);
+
+    const rol    = document.getElementById('tRol');
+    const usr    = document.getElementById('tUsuario');
+    const est    = document.getElementById('tEstado');
+    const mun    = document.getElementById('tMunicipio');
+    const com    = document.getElementById('tComerciante');
+    const estab  = document.getElementById('tEstablecimiento');
+
+    // Rol → Usuario  (1:N)
+    drawPath(rightX(rol), midY(rol), leftX(usr), midY(usr), '#a78bfa', '1:N');
+    // Estado → Comerciante (1:N)
+    drawPath(midX(est), bottomY(est), midX(com)+40, topY(com), '#10b981', '1:N');
+    // Municipio → Comerciante (1:N)
+    drawPath(midX(mun), bottomY(mun), midX(com)+80, topY(com), '#f59e0b', '1:N');
+    // Comerciante → Establecimiento (1:N)
+    drawPath(midX(com), bottomY(com), midX(estab), topY(estab), '#00d4ff', '1:N');
+  }
+
+  // Wait for layout
+  setTimeout(draw, 120);
+  window.addEventListener('resize', draw);
+})();
+</script>
+<!-- FOOTER -->
+<div style="
+  position: relative; z-index: 10;
+  padding: 20px 48px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #475569;
+  background: rgba(0,0,0,.2);
+">
+  Creado por &nbsp;
+  <span style="color:#e2e8f0; font-family:'Syne',sans-serif; font-weight:700;">Juan David Escobar</span>
+  &nbsp;·&nbsp; 2026
+</div>
+
+</body>
+</html>
