@@ -63,22 +63,24 @@ BEGIN
     SET NOCOUNT ON;
 
     SELECT
-        c.NombreRazonSocial,
-        m.Nombre              AS Municipio,
-        c.Telefono,
-        c.CorreoElectronico,
-        c.FechaRegistro,
-        e.Nombre              AS Estado,
-        r.CantidadEstablecimientos,
-        r.TotalIngresos,
-        r.CantidadEmpleados
-    FROM Comerciante c
-    INNER JOIN Municipio m  ON c.MunicipioId = m.MunicipioId
-    INNER JOIN Estado e     ON c.EstadoId    = e.EstadoId
-    INNER JOIN dbo.fn_ObtenerResumenEstablecimientos() r 
-                            ON c.ComercianteId = r.ComercianteId
-    WHERE e.Nombre = 'Activo'
-    ORDER BY r.CantidadEstablecimientos DESC;
+    c.ComercianteId,
+    c.NombreRazonSocial,
+    m.Nombre              AS Municipio,
+    c.Telefono,
+    c.CorreoElectronico,
+    c.FechaRegistro,
+    e.Nombre              AS Estado,
+    ISNULL(r.CantidadEstablecimientos, 0) AS CantidadEstablecimientos,
+    ISNULL(r.TotalIngresos, 0)            AS TotalIngresos,
+    ISNULL(r.CantidadEmpleados, 0)        AS CantidadEmpleados
+	FROM Comerciante c
+	INNER JOIN Municipio m  ON c.MunicipioId = m.MunicipioId
+	INNER JOIN Estado e     ON c.EstadoId    = e.EstadoId
+	LEFT JOIN dbo.fn_ObtenerResumenEstablecimientos() r 
+							ON c.ComercianteId = r.ComercianteId
+	WHERE e.Nombre = 'Activo'
+	ORDER BY CantidadEstablecimientos DESC;
+
 END;
 GO
 
